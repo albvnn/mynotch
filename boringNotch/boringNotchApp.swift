@@ -281,6 +281,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
 
+        // Start the Claude Code session watcher eagerly so background tracking (and the
+        // FSEvents watcher) begin at launch, rather than only once the user first opens the tab.
+        if Defaults[.showClaudeSessions] {
+            _ = ClaudeSessionsViewModel.shared
+        }
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(screenConfigurationDidChange),

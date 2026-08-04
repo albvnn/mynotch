@@ -51,6 +51,9 @@ struct SettingsView: View {
                 NavigationLink(value: "Shelf") {
                     Label("Shelf", systemImage: "books.vertical")
                 }
+                NavigationLink(value: "Claude") {
+                    Label("Claude", systemImage: "terminal")
+                }
                 NavigationLink(value: "Shortcuts") {
                     Label("Shortcuts", systemImage: "keyboard")
                 }
@@ -85,6 +88,8 @@ struct SettingsView: View {
                     Charge()
                 case "Shelf":
                     Shelf()
+                case "Claude":
+                    ClaudeSettings()
                 case "Shortcuts":
                     Shortcuts()
                 case "Extensions":
@@ -1015,6 +1020,101 @@ struct Shelf: View {
         }
         .accentColor(.effectiveAccent)
         .navigationTitle("Shelf")
+    }
+}
+
+struct ClaudeSettings: View {
+    @Default(.showClaudeSessions) var showClaudeSessions: Bool
+    @Default(.claudeActiveSessionThresholdSeconds) var activeThreshold: TimeInterval
+    @Default(.claudeSessionTokenLimit) var sessionTokenLimit: Int
+    @StateObject private var sessionsVM = ClaudeSessionsViewModel.shared
+
+    @State private var limitText: String = ""
+
+    var body: some View {
+        Form {
+            Section {
+                Defaults.Toggle(key: .showClaudeSessions) {
+                    Text("Show Claude tab")
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("Active session threshold")
+                        Spacer()
+                        Text("\(Int(activeThreshold / 60)) min")
+                            .foregroundStyle(.secondary)
+                    }
+                    Slider(
+                        value: $activeThreshold,
+                        in: 60...1800,
+                        step: 60
+                    )
+                }
+                .padding(.vertical, 4)
+            } header: {
+                Text("General")
+            } footer: {
+                Text("A Claude Code session is considered active while its transcript file has been modified within this many minutes.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Section {
+                HStack {
+                    Text("Token limit per \(sessionsVM.limitWindowHours)h")
+                    Spacer()
+                    TextField("Off", text: $limitText)
+                        .frame(width: 90)
+                        .multilineTextAlignment(.trailing)
+                        .onChange(of: limitText) { _, newValue in
+                            let digitsOnly = newValue.filter(\.isNumber)
+                            if digitsOnly != newValue { limitText = digitsOnly }
+                            sessionTokenLimit = Int(digitsOnly) ?? 0
+                        }
+                }
+                if sessionTokenLimit > 0 {
+                    HStack {
+                        Text("Current usage")
+                        Spacer()
+                        Text("\(sessionsVM.limitWindowTotal) / \(sessionTokenLimit) tokens")
+                            .foregroundColor(.secondary)
+                    }
+                }
+            } header: {
+                Text("Claude Limit")
+            } footer: {
+                Text("Claude Code doesn't expose your account's real usage quota locally, and this app makes no network calls, so there's no way to read Anthropic's official limit. Set your own token budget here — based on where you've noticed you get rate-limited — to get a local progress gauge for the rolling \(sessionsVM.limitWindowHours)-hour window. Leave empty to hide the gauge.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Section {
+                HStack {
+                    Text("All-time total")
+                    Spacer()
+                    Text("\(sessionsVM.allTimeTotal.billableTotal) tokens")
+                        .foregroundColor(.secondary)
+                }
+                HStack {
+                    Text("Active sessions")
+                    Spacer()
+                    Text("\(sessionsVM.activeSessions.count)")
+                        .foregroundColor(.secondary)
+                }
+            } header: {
+                Text("Status")
+            } footer: {
+                Text("Reliable token counts (input, cache read, cache creation) come straight from Claude Code's session logs. Output tokens are never persisted there, so they're estimated from generated text length (~1 token per 4 characters) and marked with \"~\" throughout the app.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .accentColor(.effectiveAccent)
+        .navigationTitle("Claude")
+        .onAppear {
+            if sessionTokenLimit > 0 { limitText = String(sessionTokenLimit) }
+        }
     }
 }
 

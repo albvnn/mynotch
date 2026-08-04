@@ -199,4 +199,12 @@ extension Defaults.Keys {
     }
 
     static let didClearLegacyURLCacheV1 = Key<Bool>("didClearLegacyURLCache_v1", default: false)
+
+    // MARK: Claude
+    static let showClaudeSessions = Key<Bool>("showClaudeSessions", default: true)
+    /// A session's .jsonl file counts as "active" if modified within this many seconds.
+    static let claudeActiveSessionThresholdSeconds = Key<TimeInterval>("claudeActiveSessionThresholdSeconds", default: 300)
+    /// User-set token budget for Claude's rolling 5-hour session limit. There's no local, network-free
+    /// way to read the real Anthropic account quota, so this is a self-configured estimate. 0 = unset.
+    static let claudeSessionTokenLimit = Key<Int>("claudeSessionTokenLimit", default: 0)
 }
